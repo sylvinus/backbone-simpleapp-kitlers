@@ -42,4 +42,5 @@ app.get('/api/kitler/:i', function(req, res){
 
 app.use(express.static(path.resolve(__dirname,"../")));
 
+console.log("KitlerDB up on http://localhost:3000/");
 app.listen(3000);
