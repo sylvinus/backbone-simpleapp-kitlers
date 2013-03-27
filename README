@@ -1,0 +1,268 @@
+backbone-simpleapp-kitlers
+==========================
+
+A very simple Backbone.js demo app I first live-coded in 10 minutes at ParisJS #18. Features face detection of Kitlers!
+
+For more on Kitlers:
+http://www.catsthatlooklikehitler.com/
+
+The code was updated for a new livecoding session at DevoxxFR 2013 where I started over with yeoman & requireJS.
+
+
+How to run
+==========
+
+$ npm install -g yo grunt-cli bower
+$ grunt server
+
+You can then use the global variable R from the console like I did on stage to test some calls on the main KitlerDB View.
+
+Sample call:
+
+R.klv.col.at(2).set("name", "Jean-Emarre");
+
+
+
+How to reproduce for livecoding
+===============================
+
+Explain yeoman and scaffolding
+
+$ yo webapp
+
+Explain bower & dependencies
+
+$ npm install && bower install
+
+$ Copy static files in app/ (images & kitlers.json)
+
+WTF
+
+$ ln -s Gruntfile.js grunt.js
+
+Showcase grunt jshint, grunt test
+
+$ grunt server
+
+demo livereload
+
+
+paste html:
+
+
+
+        <div class="navbar navbar-fixed-top">
+          <div class="navbar-inner">
+            <div class="container">
+              <a class="brand" href="#">Backbone Live Code</a>
+              <div class="nav-collapse">
+                <ul class="nav">
+                  <li><a href="#">Home</a></li>
+                  <li><a href="#kitlers">KitlerDB</a></li>
+                  <li><a href="https://github.com/sylvinus/backbone-simpleapp-kitlers">GitHub</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top: 60px;">
+
+          <div class="page" id="page_home">
+            Welcome!
+          </div>
+
+          <ul class="page" id="page_list">
+
+          </ul>
+
+        </div>
+
+        <script type="text/template" id="kitemplate">
+          <li class='thumbnail span3'>
+            <img src='<%= m.get("url") %>'/>
+            <div class='caption'><%= m.get("name") %></div>
+            <button class="btn detect">Detect</button>
+          </li>
+        </script>
+
+
+
+
+explain requirejs
+
+
+paste main.js
+
+
+
+require.config({
+    paths: {
+        jquery: '../components/jquery/jquery',
+        backbone: '../components/backbone/backbone',
+        underscore: '../components/underscore/underscore',
+        bootstrap: 'vendor/bootstrap'
+    },
+    shim: {
+        bootstrap: {
+            deps: ['jquery'],
+            exports: 'jquery'
+        },
+        backbone: {
+            deps: ['underscore'],
+            exports: 'Backbone'
+        },
+        underscore: {
+            deps: [''],
+            exports: '_'
+        }
+    }
+});
+
+
+then
+
+
+    $(function() {
+        window.R = new Router();
+        window.R.start();
+    });
+
+
+paster router :
+
+
+define(["backbone", "jquery", "views/kitlers"], function (Backbone, $, KitlersView) {
+
+  return Backbone.Router.extend({
+
+    routes: {
+      "":"home",
+      "kitlers":"list"
+    },
+
+    changePage:function(id) {
+      $(".page").hide();
+      $("#page_"+id).show();
+    },
+
+    home:function() {
+      this.changePage("home");
+    },
+
+    list:function() {
+      this.changePage("list");
+      this.klv = new KitlersView();
+    },
+
+    start:function() {
+      Backbone.history.start();
+    }
+
+  });
+});
+
+
+
+
+
+paste base view:
+
+
+
+
+define(["backbone", "jquery", "underscore", "collections/kitlers"], function (Backbone, $, _, KitlersCol) {
+
+  return Backbone.View.extend({
+    el:"#page_list",
+
+    _itemTpl:_.template($("#kitemplate").html()),
+
+    events:{
+    },
+
+    initialize:function() {
+
+      this.col = new KitlersCol();
+
+      this.col.on("all",this.render,this);
+
+      this.col.fetch();
+
+    },
+
+    render:function() {
+      this.$el.html(
+        this.col.map(function(k) {
+          return this._itemTpl({"m":k});
+        },this).join("")
+      );
+    }
+  });
+});
+
+
+
+
+paste base collection:
+
+
+define(["backbone", "models/kitler"], function (Backbone, KitlerModel) {
+
+  return Backbone.Collection.extend({
+    model:KitlerModel,
+    url:"/kitlers.json"
+  });
+});
+
+
+
+
+paste base model:
+
+
+define(["backbone"], function (Backbone) {
+
+  return Backbone.Model.extend({
+    shout:function() {
+      alert(this.get("name"));
+    }
+  });
+});
+
+
+then play with the app via chrome console
+
+collection.pop()
+model.get, set, save, shout
+
+
+
+BONUS: Kitler face detection!
+
+
+face.js in app/scripts/vendor + requirejs conf + require()
+
+Add this to the model and then play with the buttons:
+
+    detect:function(evt) {
+      var img = $("img",$(evt.target).parent());
+      var coordinates = img.faceDetection();
+
+       if(coordinates.length) {
+          coordinates.forEach(function(coord) {
+
+            $("<div>", {
+              css: {
+                position: "absolute",
+                left: coord.positionX - 5 + parseInt(img.css("margin-left"),10) + "px",
+                top: coord.positionY - 5 + "px",
+                width: coord.width + "px",
+                height: coord.height + "px",
+                border: "3px solid red"
+              }
+            }).appendTo(img.parent());
+          });
+       }
+    }
+
